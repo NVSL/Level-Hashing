@@ -9,7 +9,7 @@ uint64_t F_HASH(level_hash *level, const uint8_t *key) {
 }
 
 /*
-Function: S_HASH() 
+Function: S_HASH()
         Compute the second hash value of a key-value item
 */
 uint64_t S_HASH(level_hash *level, const uint8_t *key) {
@@ -17,7 +17,7 @@ uint64_t S_HASH(level_hash *level, const uint8_t *key) {
 }
 
 /*
-Function: F_IDX() 
+Function: F_IDX()
         Compute the second hash location
 */
 uint64_t F_IDX(uint64_t hashKey, uint64_t capacity) {
@@ -25,7 +25,7 @@ uint64_t F_IDX(uint64_t hashKey, uint64_t capacity) {
 }
 
 /*
-Function: S_IDX() 
+Function: S_IDX()
         Compute the second hash location
 */
 uint64_t S_IDX(uint64_t hashKey, uint64_t capacity) {
@@ -33,7 +33,7 @@ uint64_t S_IDX(uint64_t hashKey, uint64_t capacity) {
 }
 
 /*
-Function: generate_seeds() 
+Function: generate_seeds()
         Generate two randomized seeds for hash functions
 */
 void generate_seeds(level_hash *level)
@@ -49,7 +49,7 @@ void generate_seeds(level_hash *level)
 }
 
 /*
-Function: level_init() 
+Function: level_init()
         Initialize a level hash table
 */
 level_hash *level_init(uint64_t level_size)
@@ -99,7 +99,7 @@ Function: level_expand()
         Put a new level on the top of the old hash table and only rehash the
         items in the bottom level of the old hash table;
 */
-void level_expand(level_hash *level) 
+void level_expand(level_hash *level)
 {
     if (!level)
     {
@@ -131,8 +131,8 @@ void level_expand(level_hash *level)
                 uint64_t s_idx = S_IDX(S_HASH(level, key), level->addr_capacity);
 
                 uint8_t insertSuccess = 0;
-                for(j = 0; j < ASSOC_NUM; j ++){        
-                    /*  The rehashed item is inserted into the less-loaded bucket between 
+                for(j = 0; j < ASSOC_NUM; j ++){
+                    /*  The rehashed item is inserted into the less-loaded bucket between
                         the two hash locations in the new level
                     */
                     if (level->interim_level_buckets[f_idx].token[j] == 0)
@@ -155,7 +155,7 @@ void level_expand(level_hash *level)
                         memcpy(level->interim_level_buckets[s_idx].slot[j].key, key, KEY_LEN);
                         memcpy(level->interim_level_buckets[s_idx].slot[j].value, value, VALUE_LEN);
                         level->interim_level_buckets[s_idx].token[j] = 1;
-                        
+
                         pflush((uint64_t *)&level->interim_level_buckets[s_idx].slot[j].key);
                         pflush((uint64_t *)&level->interim_level_buckets[s_idx].slot[j].value);
                         asm_mfence();
@@ -169,9 +169,9 @@ void level_expand(level_hash *level)
 
                 if(!insertSuccess){
                     printf("The expanding fails: 3\n");
-                    exit(1);                    
+                    exit(1);
                 }
-                
+
                 level->buckets[1][old_idx].token[i] = 0;
                 pflush((uint64_t *)&level->buckets[1][old_idx].token[i]);
                 asm_mfence();
@@ -185,7 +185,7 @@ void level_expand(level_hash *level)
     level->buckets[1] = level->buckets[0];
     level->buckets[0] = level->interim_level_buckets;
     level->interim_level_buckets = NULL;
-    
+
     level->level_item_num[1] = level->level_item_num[0];
     level->level_item_num[0] = new_level_item_num;
     level->level_expand_time ++;
@@ -246,14 +246,14 @@ void level_shrink(level_hash *level)
             {
                 if(level_insert(level, level->interim_level_buckets[old_idx].slot[i].key, level->interim_level_buckets[old_idx].slot[i].value)){
                         printf("The shrinking fails: 3\n");
-                        exit(1);   
+                        exit(1);
                 }
 
             level->interim_level_buckets[old_idx].token[i] = 0;
             pflush((uint64_t *)&level->interim_level_buckets[old_idx].token[i]);
             }
         }
-    } 
+    }
 
     pfree(level->interim_level_buckets, pow(2, level->level_size + 1)*sizeof(level_bucket));
     level->resize_state = 0;
@@ -261,19 +261,19 @@ void level_shrink(level_hash *level)
 }
 
 /*
-Function: level_dynamic_query() 
+Function: level_dynamic_query()
         Lookup a key-value item in level hash table via danamic search scheme;
         First search the level with more items;
 */
 uint8_t* level_dynamic_query(level_hash *level, uint8_t *key)
-{   
+{
     uint64_t f_hash = F_HASH(level, key);
     uint64_t s_hash = S_HASH(level, key);
 
     uint64_t i, j, f_idx, s_idx;
     if(level->level_item_num[0] > level->level_item_num[1]){
         f_idx = F_IDX(f_hash, level->addr_capacity);
-        s_idx = S_IDX(s_hash, level->addr_capacity); 
+        s_idx = S_IDX(s_hash, level->addr_capacity);
 
         for(i = 0; i < 2; i ++){
             for(j = 0; j < ASSOC_NUM; j ++){
@@ -317,7 +317,7 @@ uint8_t* level_dynamic_query(level_hash *level, uint8_t *key)
 }
 
 /*
-Function: level_static_query() 
+Function: level_static_query()
         Lookup a key-value item in level hash table via static search scheme;
         Always first search the top level and then search the bottom level;
 */
@@ -327,7 +327,7 @@ uint8_t* level_static_query(level_hash *level, uint8_t *key)
     uint64_t s_hash = S_HASH(level, key);
     uint64_t f_idx = F_IDX(f_hash, level->addr_capacity);
     uint64_t s_idx = S_IDX(s_hash, level->addr_capacity);
-    
+
     uint64_t i, j;
     for(i = 0; i < 2; i ++){
         for(j = 0; j < ASSOC_NUM; j ++){
@@ -351,7 +351,7 @@ uint8_t* level_static_query(level_hash *level, uint8_t *key)
 
 
 /*
-Function: level_delete() 
+Function: level_delete()
         Remove a key-value item from level hash table;
         The function can be optimized by using the dynamic search scheme
 */
@@ -361,7 +361,7 @@ uint8_t level_delete(level_hash *level, uint8_t *key)
     uint64_t s_hash = S_HASH(level, key);
     uint64_t f_idx = F_IDX(f_hash, level->addr_capacity);
     uint64_t s_idx = S_IDX(s_hash, level->addr_capacity);
-    
+
     uint64_t i, j;
     for(i = 0; i < 2; i ++){
         for(j = 0; j < ASSOC_NUM; j ++){
@@ -392,7 +392,7 @@ uint8_t level_delete(level_hash *level, uint8_t *key)
 }
 
 /*
-Function: level_update() 
+Function: level_update()
         Update the value of a key-value item in level hash table;
         The function can be optimized by using the dynamic search scheme
 */
@@ -402,7 +402,7 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
     uint64_t s_hash = S_HASH(level, key);
     uint64_t f_idx = F_IDX(f_hash, level->addr_capacity);
     uint64_t s_idx = S_IDX(s_hash, level->addr_capacity);
-    
+
     uint64_t i, j, k;
     for(i = 0; i < 2; i ++){
         for(j = 0; j < ASSOC_NUM; j ++){
@@ -412,7 +412,7 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
                     if (level->buckets[i][f_idx].token[k] == 0){        // Log-free update
                         memcpy(level->buckets[i][f_idx].slot[k].key, key, KEY_LEN);
                         memcpy(level->buckets[i][f_idx].slot[k].value, new_value, VALUE_LEN);
-                        
+
                         level->buckets[i][f_idx].token[j] = 0;
                         level->buckets[i][f_idx].token[k] = 1;
 
@@ -421,14 +421,14 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
                         asm_mfence();
                         pflush((uint64_t *)&level->buckets[i][f_idx].token[j]);
                         asm_mfence();
-                        return 0;                        
+                        return 0;
                     }
                 }
                 log_write(level->log, key, new_value);
-                
+
                 memcpy(level->buckets[i][f_idx].slot[j].value, new_value, VALUE_LEN);
                 pflush((uint64_t *)&level->buckets[i][f_idx].slot[j].value);
-                
+
                 log_clean(level->log);
                 return 0;
             }
@@ -440,7 +440,7 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
                     if (level->buckets[i][s_idx].token[k] == 0){        // Log-free update
                         memcpy(level->buckets[i][s_idx].slot[k].key, key, KEY_LEN);
                         memcpy(level->buckets[i][s_idx].slot[k].value, new_value, VALUE_LEN);
-                        
+
                         level->buckets[i][s_idx].token[j] = 0;
                         level->buckets[i][s_idx].token[k] = 1;
 
@@ -449,14 +449,14 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
                         asm_mfence();
                         pflush((uint64_t *)&level->buckets[i][s_idx].token[j]);
                         asm_mfence();
-                        return 0;                        
+                        return 0;
                     }
                 }
                 log_write(level->log, key, new_value);
-                
+
                 memcpy(level->buckets[i][s_idx].slot[j].value, new_value, VALUE_LEN);
                 pflush((uint64_t *)&level->buckets[i][s_idx].slot[j].value);
-                
+
                 log_clean(level->log);
                 return 0;
             }
@@ -469,7 +469,7 @@ uint8_t level_update(level_hash *level, uint8_t *key, uint8_t *new_value)
 }
 
 /*
-Function: level_insert() 
+Function: level_insert()
         Insert a key-value item into level hash table;
 */
 uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
@@ -483,16 +483,16 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
     int empty_location;
 
     for(i = 0; i < 2; i ++){
-        for(j = 0; j < ASSOC_NUM; j ++){        
-            /*  The new item is inserted into the less-loaded bucket between 
-                the two hash locations in each level           
+        for(j = 0; j < ASSOC_NUM; j ++){
+            /*  The new item is inserted into the less-loaded bucket between
+                the two hash locations in each level
             */
             if (level->buckets[i][f_idx].token[j] == 0)
             {
                 memcpy(level->buckets[i][f_idx].slot[j].key, key, KEY_LEN);
                 memcpy(level->buckets[i][f_idx].slot[j].value, value, VALUE_LEN);
                 level->buckets[i][f_idx].token[j] = 1;
-                
+
                 // When the key-value item and token are in the same cache line, only one flush is acctually executed.
                 pflush((uint64_t *)&level->buckets[i][f_idx].slot[j].key);
                 pflush((uint64_t *)&level->buckets[i][f_idx].slot[j].value);
@@ -502,7 +502,7 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
                 asm_mfence();
                 return 0;
             }
-            if (level->buckets[i][s_idx].token[j] == 0) 
+            if (level->buckets[i][s_idx].token[j] == 0)
             {
                 memcpy(level->buckets[i][s_idx].slot[j].key, key, KEY_LEN);
                 memcpy(level->buckets[i][s_idx].slot[j].value, value, VALUE_LEN);
@@ -517,14 +517,14 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
                 return 0;
             }
         }
-        
+
         f_idx = F_IDX(f_hash, level->addr_capacity / 2);
         s_idx = S_IDX(s_hash, level->addr_capacity / 2);
     }
 
     f_idx = F_IDX(f_hash, level->addr_capacity);
     s_idx = S_IDX(s_hash, level->addr_capacity);
-    
+
     for(i = 0; i < 2; i++){
         if(!try_movement(level, f_idx, i, key, value)){
             return 0;
@@ -534,7 +534,7 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
         }
 
         f_idx = F_IDX(f_hash, level->addr_capacity/2);
-        s_idx = S_IDX(s_hash, level->addr_capacity/2);        
+        s_idx = S_IDX(s_hash, level->addr_capacity/2);
     }
 
     if(level->level_expand_time > 0){
@@ -542,7 +542,7 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
         if(empty_location != -1){
             memcpy(level->buckets[1][f_idx].slot[empty_location].key, key, KEY_LEN);
             memcpy(level->buckets[1][f_idx].slot[empty_location].value, value, VALUE_LEN);
-            level->buckets[1][f_idx].token[empty_location] = 1;            
+            level->buckets[1][f_idx].token[empty_location] = 1;
 
             pflush((uint64_t *)&level->buckets[1][f_idx].slot[empty_location].key);
             pflush((uint64_t *)&level->buckets[1][f_idx].slot[empty_location].value);
@@ -573,7 +573,7 @@ uint8_t level_insert(level_hash *level, uint8_t *key, uint8_t *value)
 }
 
 /*
-Function: try_movement() 
+Function: try_movement()
         Try to move an item from the current bucket to its same-level alternative bucket;
 */
 uint8_t try_movement(level_hash *level, uint64_t idx, uint64_t level_num, uint8_t *key, uint8_t *value)
@@ -587,7 +587,7 @@ uint8_t try_movement(level_hash *level, uint64_t idx, uint64_t level_num, uint8_
         uint64_t s_hash = S_HASH(level, m_key);
         uint64_t f_idx = F_IDX(f_hash, level->addr_capacity/(1+level_num));
         uint64_t s_idx = S_IDX(s_hash, level->addr_capacity/(1+level_num));
-        
+
         if(f_idx == idx)
             jdx = s_idx;
         else
@@ -598,7 +598,7 @@ uint8_t try_movement(level_hash *level, uint64_t idx, uint64_t level_num, uint8_
             {
                 memcpy(level->buckets[level_num][jdx].slot[j].key, m_key, KEY_LEN);
                 memcpy(level->buckets[level_num][jdx].slot[j].value, m_value, VALUE_LEN);
-                level->buckets[1][s_idx].token[empty_location] = 1;
+                level->buckets[1][s_idx].token[j] = 1;
 
                 pflush((uint64_t *)&level->buckets[level_num][jdx].slot[j].key);
                 pflush((uint64_t *)&level->buckets[level_num][jdx].slot[j].value);
@@ -621,17 +621,17 @@ uint8_t try_movement(level_hash *level, uint64_t idx, uint64_t level_num, uint8_
                 pflush((uint64_t *)&level->buckets[level_num][idx].token[i]);
                 level->level_item_num[level_num] ++;
                 asm_mfence();
-                
+
                 return 0;
             }
-        }       
+        }
     }
-    
+
     return 1;
 }
 
 /*
-Function: b2t_movement() 
+Function: b2t_movement()
         Try to move a bottom-level item to its top-level alternative buckets;
 */
 int b2t_movement(level_hash *level, uint64_t idx)
@@ -639,16 +639,16 @@ int b2t_movement(level_hash *level, uint64_t idx)
     uint8_t *key, *value;
     uint64_t s_hash, f_hash;
     uint64_t s_idx, f_idx;
-    
+
     uint64_t i, j;
     for(i = 0; i < ASSOC_NUM; i ++){
         key = level->buckets[1][idx].slot[i].key;
         value = level->buckets[1][idx].slot[i].value;
         f_hash = F_HASH(level, key);
-        s_hash = S_HASH(level, key);  
+        s_hash = S_HASH(level, key);
         f_idx = F_IDX(f_hash, level->addr_capacity);
         s_idx = S_IDX(s_hash, level->addr_capacity);
-    
+
         for(j = 0; j < ASSOC_NUM; j ++){
             if (level->buckets[0][f_idx].token[j] == 0)
             {
@@ -697,7 +697,7 @@ int b2t_movement(level_hash *level, uint64_t idx)
 }
 
 /*
-Function: level_destroy() 
+Function: level_destroy()
         Destroy a level hash table
 */
 void level_destroy(level_hash *level)
